@@ -1,0 +1,38 @@
+void doFuncDef(int u)
+{
+    offset = 8;
+    isFirst = false;
+    State state = node[u].state;
+    codes.emplace_back("\t.globl\t" + state[1]);
+    if (isFirst)
+        codes.emplace_back("\t.type\tmain, @function");
+    codes.emplace_back(state[1] + ":");
+    codes.emplace_back("\tpushq\t%rbp");
+    saveReg();
+    codes.emplace_back("\tmovq\t%rsp, %rbp");
+    codes.emplace_back("\tsubq\t$32, %rsp");
+    varMap.emplace_back();
+    auto vars = doFuncFParams(node[u].son[0], offset);
+    for (int i = 0; i < vars.size(); i++)
+    {
+        auto var = vars[i];
+        if (var.name.empty())
+            continue;
+        varMap[varMap.size() - 1][var.name] = var;
+        int size = var.size / 16 * 16 + 16;
+        codes.emplace_back("\tsubq\t$" + to_string(size) + ", %rsp");
+        if (!i)
+            codes.emplace_back("\tmovq\t %rdi, " + to_string(-offset) + "(%rbp)");
+        else
+            codes.emplace_back("\tmovq\t %rsi, " + to_string(-offset) + "(%rbp)");
+        offset += size;
+    }
+doBlock(node[u].son[1], false);
+    if (state[0] == "void")
+        popReg();
+    codes.emplace_back("\tmovq\t%rbp, %rsp");
+    popReg();
+    S.pop();
+    codes.emplace_back("\tpopq\t%rbp");
+    codes.emplace_back("\tret");
+}
